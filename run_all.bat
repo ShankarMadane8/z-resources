@@ -1,70 +1,86 @@
 @echo off
 TITLE Microservices Ecosystem Master Script (Resources Version)
 echo ======================================================
-echo 🚀 STARTING MICROSERVICES ECOSYSTEM
+echo STARTING MICROSERVICES ECOSYSTEM
 echo ======================================================
 
-:: Paths relative to the script location (z-resources)
-set RESOURCES_DIR=%~dp0
-set PROJECT_ROOT=%RESOURCES_DIR%..
-set SOFTWARE_DIR=%PROJECT_ROOT%\SOFTWARE_INSTALLED
+:: Resolve absolute paths to avoid pathing issues with '..'
+set "RESOURCES_DIR=%~dp0"
+for %%i in ("%~dp0..") do set "PROJECT_ROOT=%%~fi"
+for %%i in ("%PROJECT_ROOT%\SOFTWARE_INSTALLED") do set "SOFTWARE_DIR=%%~fi"
+
+echo [STATUS] Project Root: %PROJECT_ROOT%
+echo [STATUS] Software Dir: %SOFTWARE_DIR%
 
 :: 1. Fix Windows Path Issues for Kafka using Subst
-echo 🛠️ Mapping Z: drive to SOFTWARE_INSTALLED for Kafka...
+echo [STATUS] Mapping Z: drive to SOFTWARE_INSTALLED for Kafka...
 subst Z: /D >nul 2>&1
 subst Z: "%SOFTWARE_DIR%"
-echo ✅ Z: drive mapped to %SOFTWARE_DIR%
+if errorlevel 1 (
+    echo [ERROR] FAILED to map Z: drive. Kafka may fail to start.
+) else (
+    echo [OK] Z: drive mapped to Z:\
+)
 
 :: 2. Start Infrastructure Services
-echo 🐘 Starting Zookeeper...
-start "ZOOKEEPER" /D "Z:\kafka\bin\windows" cmd /k "zookeeper-server-start.bat Z:\kafka\config\zookeeper.properties"
-timeout /t 5 >nul
+echo [INFRA] Starting Zookeeper...
+start "ZOOKEEPER" /D "Z:\kafka\bin\windows" cmd /k "title ZOOKEEPER && zookeeper-server-start.bat Z:\kafka\config\zookeeper.properties"
+ping 127.0.0.1 -n 9 >nul
 
-echo 🪵 Starting Kafka...
-start "KAFKA" /D "Z:\kafka\bin\windows" cmd /k "kafka-server-start.bat Z:\kafka\config\server.properties"
-timeout /t 8 >nul
+echo [INFRA] Starting Kafka...
+start "KAFKA" /D "Z:\kafka\bin\windows" cmd /k "title KAFKA && kafka-server-start.bat Z:\kafka\config\server.properties"
+ping 127.0.0.1 -n 11 >nul
 
-echo 🔴 Starting Redis...
-start "REDIS" /D "%SOFTWARE_DIR%\Redis" cmd /k "redis-server.exe"
+echo [INFRA] Starting Redis...
+start "REDIS" /D "%SOFTWARE_DIR%\Redis" cmd /k "title REDIS && redis-server.exe"
 
-echo 👁️ Starting Zipkin...
-start "ZIPKIN" cmd /k "java -jar "%SOFTWARE_DIR%\zipkin.jar""
+echo [INFRA] Starting Zipkin...
+if exist "%SOFTWARE_DIR%\zipkin.jar" (
+    start "ZIPKIN" cmd /k "title ZIPKIN && java -jar "%SOFTWARE_DIR%\zipkin.jar""
+) else (
+    echo [SKIP] zipkin.jar NOT FOUND in %SOFTWARE_DIR%.
+)
 
-echo 📊 Starting AKHQ (Kafka UI)...
-start "AKHQ" /D "%SOFTWARE_DIR%" cmd /k "java -Dmicronaut.config.files=%RESOURCES_DIR%akhq-config.yml -jar akhq.jar"
+echo [INFRA] Starting AKHQ (Kafka UI)...
+if exist "%SOFTWARE_DIR%\akhq.jar" (
+    :: Using absolute path resolved without '..' to fix Micronaut config loading
+    start "AKHQ" /D "%SOFTWARE_DIR%" cmd /k "title AKHQ && java -Dmicronaut.config.files="%SOFTWARE_DIR%\akhq-config.yml" -jar akhq.jar"
+) else (
+    echo [SKIP] akhq.jar NOT FOUND in %SOFTWARE_DIR%.
+)
 
 echo.
 echo ======================================================
-echo 🌐 STARTING MICROSERVICES (from parent directory)
+echo STARTING MICROSERVICES
 echo ======================================================
 
-echo ⚙️ [1/6] Starting Config Server (Port: 8888)...
-start "CONFIG-SERVER" /D "%PROJECT_ROOT%\config-server" cmd /k "mvn spring-boot:run"
+echo [1/6] Starting Config Server (Port: 8888)...
+start "CONFIG-SERVER" /D "%PROJECT_ROOT%\config-server" cmd /k "title CONFIG-SERVER && mvn spring-boot:run"
 echo Waiting for Config Server to initialize...
-timeout /t 20 >nul
+ping 127.0.0.1 -n 26 >nul
 
-echo 📞 [2/6] Starting Service Registry (Port: 8761)...
-start "SERVICE-REGISTRY" /D "%PROJECT_ROOT%\service-registry" cmd /k "mvn spring-boot:run"
-timeout /t 15 >nul
+echo [2/6] Starting Service Registry (Port: 8761)...
+start "SERVICE-REGISTRY" /D "%PROJECT_ROOT%\service-registry" cmd /k "title SERVICE-REGISTRY && mvn spring-boot:run"
+ping 127.0.0.1 -n 16 >nul
 
-echo 🚪 [3/6] Starting API Gateway (Port: 8080)...
-start "API-GATEWAY" /D "%PROJECT_ROOT%\api-gateway" cmd /k "mvn spring-boot:run"
-timeout /t 10 >nul
+echo [3/6] Starting API Gateway (Port: 8080)...
+start "API-GATEWAY" /D "%PROJECT_ROOT%\api-gateway" cmd /k "title API-GATEWAY && mvn spring-boot:run"
+ping 127.0.0.1 -n 11 >nul
 
-echo 🛡️ [4/6] Starting Admin Server (Port: 1111)...
-start "ADMIN-SERVER" /D "%PROJECT_ROOT%\admin-server" cmd /k "mvn spring-boot:run"
-timeout /t 10 >nul
+echo [4/6] Starting Admin Server (Port: 1111)...
+start "ADMIN-SERVER" /D "%PROJECT_ROOT%\admin-server" cmd /k "title ADMIN-SERVER && mvn spring-boot:run"
+ping 127.0.0.1 -n 11 >nul
 
-echo 💬 [5/6] Starting Greet Service (Port: 9091)...
-start "GREET-SERVICE" /D "%PROJECT_ROOT%\greet-service" cmd /k "mvn spring-boot:run"
-timeout /t 10 >nul
+echo [5/6] Starting Greet Service (Port: 9091)...
+start "GREET-SERVICE" /D "%PROJECT_ROOT%\greet-service" cmd /k "title GREET-SERVICE && mvn spring-boot:run"
+ping 127.0.0.1 -n 11 >nul
 
-echo 👋 [6/6] Starting Welcome Service (Port: 8081)...
-start "WELCOME-SERVICE" /D "%PROJECT_ROOT%\welcome-service" cmd /k "mvn spring-boot:run"
+echo [6/6] Starting Welcome Service (Port: 8081)...
+start "WELCOME-SERVICE" /D "%PROJECT_ROOT%\welcome-service" cmd /k "title WELCOME-SERVICE && mvn spring-boot:run"
 
 echo.
 echo ======================================================
-echo ✅ ALL SERVICES ARE STARTING!
+echo ALL SERVICES ARE STARTING!
 echo ======================================================
 echo Eureka: http://localhost:8761
 echo Admin:  http://localhost:1111
