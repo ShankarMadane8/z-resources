@@ -121,3 +121,59 @@ ping 127.0.0.1 -n 15 >nul
 echo [ELK] Starting Kibana...
 start "KIBANA" /D "%SOFTWARE_DIR%\kibana" cmd /k "bin\kibana.bat"
 ```
+
+---
+
+## 🔎 7. How to View Logs (Kibana Dashboard)
+
+Since you already have logs flowing (I checked and you have data!), here is how to see them visually:
+
+### Step 1: Access Kibana
+Open [http://localhost:5601](http://localhost:5601) in your browser.
+
+### Step 2: Create a "Data View"
+Kibana needs to know which index to show.
+1. Click the **Hamburger Menu** (top left) -> **Stack Management** (bottom).
+2. On the left sidebar, click **Data Views**.
+3. Click **Create data view**.
+4. Set **Name**: `Microservices Logs`.
+5. Set **Index pattern**: `microservices-logs-*`.
+6. Click **Save data view to Kibana**.
+
+### Step 3: Explore the Logs
+1. Click the **Hamburger Menu** -> **Discover**.
+2. Select your `Microservices Logs` data view from the dropdown.
+3. **Boom!** You should see all logs from all services.
+
+---
+
+## 🔍 9. Searching & Filtering logs (Example: Greet Service)
+
+Once you are in the **Discover** tab, here is how you find exactly what you need:
+
+### A. Filter by Service (Greet-Service)
+1. In the search bar at the top, type:
+   `app_name : "greet-service"`
+2. Press **Enter**.
+3. Now the list only shows logs from your Greet Service.
+
+### B. Full-Text Search
+1. In the search bar, just type a word you are looking for (e.g., `Saving student` or `Kafka`).
+2. Kibana will highlight every log containing that text.
+
+### C. Make it readable (Columns)
+1. On the left sidebar (**Available fields**), search for `app_name` and click the **+** icon.
+2. Search for `message` and click the **+** icon.
+3. This creates a clean table with the service name and the log message side-by-side.
+
+### D. Time Filter
+Use the **Calendar icon** (top right) to narrow down the time (e.g., "Last 15 minutes") if you just triggered an API call.
+
+---
+
+## ✅ 10. Verification (Testing the flow)
+
+To see if everything is working:
+1. Run `curl http://localhost:9200/_cat/indices?v`.
+2. Look for an index named `microservices-logs-YYYY.MM.DD`.
+3. If it exists and the `docs.count` is greater than 0, your setup is **100% correct**.
