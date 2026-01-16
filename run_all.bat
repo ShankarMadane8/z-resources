@@ -87,7 +87,7 @@ echo [2/6] Starting Service Registry (Port: 8761)...
 start "SERVICE-REGISTRY" /D "%PROJECT_ROOT%\service-registry" cmd /k "title SERVICE-REGISTRY && mvn spring-boot:run"
 ping 127.0.0.1 -n 16 >nul
 
-echo [3/6] Starting API Gateway (Port: 8080)...
+echo [3/6] Starting API Gateway (Port: 8888)...
 start "API-GATEWAY" /D "%PROJECT_ROOT%\api-gateway" cmd /k "title API-GATEWAY && mvn spring-boot:run"
 ping 127.0.0.1 -n 11 >nul
 
@@ -110,7 +110,7 @@ echo Eureka: http://localhost:8761
 echo Admin:  http://localhost:1111
 echo Zipkin: http://localhost:9411
 echo AKHQ:   http://localhost:9099
-echo Test:   http://localhost:8080/welcome-service/welcome
+echo Test:   http://localhost:8888/welcome-service/welcome
 echo ======================================================
 echo Press any key to exit this script. The services will keep running.
 pause >nul
